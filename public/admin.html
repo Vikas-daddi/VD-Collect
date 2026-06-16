@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VD Collect – Admin</title>
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body>
+  <nav>
+    <div class="logo">⚡ VD Collect <span>Admin</span></div>
+    <div>
+      <a href="/">Back to Site</a>
+      <button id="adminLogoutBtn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="admin-container">
+    <h1>📊 Admin Dashboard</h1>
+    
+    <div class="admin-grid">
+      <!-- ADD / EDIT CENTER CARD -->
+      <div class="card">
+        <h3 id="formTitle">➕ Add New Center</h3>
+        <form id="centerForm">
+          <!-- Hidden field to track if we are editing -->
+          <input type="hidden" id="editId" value="" />
+          
+          <input type="text" id="centerName" placeholder="Center Name" required />
+          <input type="text" id="centerAddress" placeholder="Address" required />
+          <input type="text" id="centerCity" placeholder="City" required />
+          <input type="text" id="centerLat" placeholder="Latitude" required />
+          <input type="text" id="centerLng" placeholder="Longitude" required />
+          <input type="text" id="centerPhone" placeholder="Phone" />
+          <input type="text" id="centerTiming" placeholder="Timing (e.g., 9 AM - 6 PM)" />
+          <input type="text" id="centerItems" placeholder="Accepted items (comma separated)" />
+          
+          <button type="submit" id="submitBtn">🔍 Auto-Detect & Add Center</button>
+          <button type="button" id="cancelEditBtn" style="display:none; background:#888; margin-top:10px;">Cancel Edit</button>
+        </form>
+        <p style="font-size:12px; color:#888; margin-top:8px;">
+          📍 You can manually enter Lat/Lng, or the system will auto-detect if you leave them blank.
+        </p>
+      </div>
+
+      <!-- ALL CENTERS CARD -->
+      <div class="card">
+        <h3>📋 All Centers</h3>
+        <div id="centerList"></div>
+      </div>
+
+      <!-- ALL BOOKINGS CARD (FULL WIDTH) -->
+      <div class="card full-width">
+        <h3>📦 All Pickup Requests</h3>
+        <div id="bookingList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

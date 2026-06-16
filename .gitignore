@@ -1,0 +1,17 @@
+# Node
+node_modules/
+npm-debug.log
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary scripts (we'll delete these in step 2)
+cleanup.js
+cleanup-strong.js
+seed.js

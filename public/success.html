@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Confirmed! – VD Collect</title>
+  <link rel="stylesheet" href="css/auth.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    .success-icon {
+      font-size: 80px;
+      display: block;
+      margin-bottom: 20px;
+      animation: bounce 1s ease infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .success-sub {
+      font-size: 18px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    .booking-details {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .booking-details p {
+      margin: 6px 0;
+    }
+
+    .btn-secondary {
+      background: #0d2b3e;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-secondary:hover {
+      background: #1a4a5f;
+      transform: scale(1.02);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #0d2b3e;
+      border: 2px solid #0d2b3e;
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+      text-decoration: none;
+      display: inline-block;
+      margin-left: 10px;
+    }
+
+    .btn-outline:hover {
+      background: #0d2b3e;
+      color: white;
+    }
+
+    @media (max-width: 480px) {
+      .btn-outline {
+        margin-left: 0;
+        margin-top: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-card" style="max-width: 550px;">
+      <div class="auth-header">
+        <span class="success-icon">🎉</span>
+        <h1>Booking Confirmed!</h1>
+        <p class="success-sub">Your pickup has been successfully scheduled.</p>
+      </div>
+
+      <div class="booking-details" id="bookingDetails">
+        <p><strong>📍 Center:</strong> <span id="centerName">Loading...</span></p>
+        <p><strong>📅 Date:</strong> <span id="pickupDate">Loading...</span></p>
+        <p><strong>📦 Items:</strong> <span id="itemsList">Loading...</span></p>
+        <p><strong>🏠 Address:</strong> <span id="pickupAddress">Loading...</span></p>
+        <p style="margin-top:12px; color:#4CAF50; font-weight:700;">✅ Status: PENDING</p>
+      </div>
+
+      <p style="color:#666; font-size:14px; margin: 10px 0 20px;">
+        You will receive a confirmation email soon. <br/>
+        The admin will review your request and confirm the pickup.
+      </p>
+
+      <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;">
+        <a href="/history" class="btn-secondary">📜 My Bookings</a>
+        <a href="/" class="btn-outline">🏠 Home</a>
+      </div>
+
+      <div class="auth-footer">
+        <p><a href="/map">← Continue exploring centers</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const centerName = sessionStorage.getItem('success_centerName') || 'N/A';
+      const pickupDate = sessionStorage.getItem('success_pickupDate') || 'N/A';
+      const itemsList = sessionStorage.getItem('success_items') || 'N/A';
+      const pickupAddress = sessionStorage.getItem('success_address') || 'N/A';
+
+      document.getElementById('centerName').textContent = centerName;
+      document.getElementById('pickupDate').textContent = pickupDate;
+      document.getElementById('itemsList').textContent = itemsList;
+      document.getElementById('pickupAddress').textContent = pickupAddress;
+    });
+  </script>
+</body>
+</html>
