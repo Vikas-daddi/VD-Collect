@@ -60,6 +60,13 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 VD Collect Server running on http://localhost:${PORT}`);
-});
+
+// Vercel serverless functions shouldn't call app.listen directly
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 VD Collect Server running on http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel
+module.exports = app;
