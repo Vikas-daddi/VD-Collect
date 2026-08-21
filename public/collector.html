@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VD Collect – Collector Portal</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; }
+    nav { background: #0d2b3e; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 20px; font-weight: 800; }
+    .logo span { color: #4caf50; }
+    nav button { background: #e53935; color: white; border: none; padding: 6px 15px; border-radius: 20px; cursor: pointer; }
+    
+    .container { max-width: 600px; margin: 20px auto; padding: 0 15px; }
+    h1 { color: #0d2b3e; font-size: 24px; margin-bottom: 20px; }
+    
+    .route-card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; border-left: 5px solid #ff9800; }
+    .route-card.completed { border-left-color: #4caf50; opacity: 0.7; }
+    .route-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+    .route-header h3 { margin: 0; color: #333; font-size: 18px; }
+    .status { font-size: 12px; font-weight: bold; padding: 3px 8px; border-radius: 10px; background: #ffe0b2; color: #e65100; text-transform: uppercase; }
+    .status.completed { background: #c8e6c9; color: #2e7d32; }
+    
+    .detail { margin: 5px 0; font-size: 14px; color: #555; }
+    .detail strong { color: #222; }
+    
+    .btn-complete { background: #4caf50; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 16px; transition: 0.2s; }
+    .btn-complete:hover { background: #388e3c; }
+    .btn-complete:disabled { background: #ccc; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">⚡ VD Collect <span>Collector</span></div>
+    <button id="logoutBtn">Logout</button>
+  </nav>
+
+  <div class="container">
+    <h1>🚚 My Daily Routes</h1>
+    <div id="routeList">
+      <p>Loading routes...</p>
+    </div>
+  </div>
+
+  <script src="js/collector.js"></script>
+</body>
+</html>

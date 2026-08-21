@@ -15,48 +15,92 @@
     </div>
   </nav>
 
-  <div class="admin-container">
-    <h1>📊 Admin Dashboard</h1>
-    
-    <div class="admin-grid">
-      <!-- ADD / EDIT CENTER CARD -->
-      <div class="card">
-        <h3 id="formTitle">➕ Add New Center</h3>
-        <form id="centerForm">
-          <!-- Hidden field to track if we are editing -->
-          <input type="hidden" id="editId" value="" />
-          
-          <input type="text" id="centerName" placeholder="Center Name" required />
-          <input type="text" id="centerAddress" placeholder="Address" required />
-          <input type="text" id="centerCity" placeholder="City" required />
-          <input type="text" id="centerLat" placeholder="Latitude" required />
-          <input type="text" id="centerLng" placeholder="Longitude" required />
-          <input type="text" id="centerPhone" placeholder="Phone" />
-          <input type="text" id="centerTiming" placeholder="Timing (e.g., 9 AM - 6 PM)" />
-          <input type="text" id="centerItems" placeholder="Accepted items (comma separated)" />
-          
-          <button type="submit" id="submitBtn">🔍 Auto-Detect & Add Center</button>
-          <button type="button" id="cancelEditBtn" style="display:none; background:#888; margin-top:10px;">Cancel Edit</button>
-        </form>
-        <p style="font-size:12px; color:#888; margin-top:8px;">
-          📍 You can manually enter Lat/Lng, or the system will auto-detect if you leave them blank.
-        </p>
+  <div class="admin-layout">
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+      <ul>
+        <li><a href="#" onclick="switchTab('panel-centers')" class="tab-link active-tab" id="tab-panel-centers">🏢 Manage Centers</a></li>
+        <li><a href="#" onclick="switchTab('panel-bookings')" class="tab-link" id="tab-panel-bookings">📦 Pickup Requests</a></li>
+        <li><a href="#" onclick="switchTab('panel-analytics')" class="tab-link" id="tab-panel-analytics">📈 Analytics</a></li>
+        <li><a href="#" onclick="switchTab('panel-requests')" class="tab-link" id="tab-panel-requests">📝 Citizen Requests</a></li>
+      </ul>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-content">
+      
+      <!-- MANAGE CENTERS PANEL -->
+      <div id="panel-centers" class="admin-panel" style="display: block;">
+        <h2>🏢 Manage Centers</h2>
+        <div class="admin-grid">
+          <!-- ADD / EDIT CENTER CARD -->
+          <div class="card">
+            <h3 id="formTitle">➕ Add New Center</h3>
+            <form id="centerForm">
+              <!-- Hidden field to track if we are editing -->
+              <input type="hidden" id="editId" value="" />
+              
+              <input type="text" id="centerName" placeholder="Center Name" required />
+              <input type="text" id="centerAddress" placeholder="Address" required />
+              <input type="text" id="centerCity" placeholder="City" required />
+              <input type="text" id="centerLat" placeholder="Latitude" required />
+              <input type="text" id="centerLng" placeholder="Longitude" required />
+              <input type="text" id="centerPhone" placeholder="Phone" />
+              <input type="text" id="centerTiming" placeholder="Timing (e.g., 9 AM - 6 PM)" />
+              <input type="text" id="centerItems" placeholder="Accepted items (comma separated)" />
+              
+              <button type="submit" id="submitBtn">🔍 Auto-Detect & Add Center</button>
+              <button type="button" id="cancelEditBtn" style="display:none; background:#888; margin-top:10px;">Cancel Edit</button>
+            </form>
+            <p style="font-size:12px; color:#888; margin-top:8px;">
+              📍 You can manually enter Lat/Lng, or the system will auto-detect if you leave them blank.
+            </p>
+          </div>
+
+          <!-- ALL CENTERS CARD -->
+          <div class="card">
+            <h3>📋 All Centers</h3>
+            <div id="centerList"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- ALL CENTERS CARD -->
-      <div class="card">
-        <h3>📋 All Centers</h3>
-        <div id="centerList"></div>
+      <!-- PICKUP REQUESTS PANEL -->
+      <div id="panel-bookings" class="admin-panel" style="display: none;">
+        <h2>📦 Pickup Requests</h2>
+        <div class="card full-width" style="margin-top: 15px;">
+          <div id="bookingList"></div>
+        </div>
+      </div>
+      
+      <!-- CITIZEN REQUESTS PANEL -->
+      <div id="panel-requests" class="admin-panel" style="display: none;">
+        <h2>📝 Citizen Center Requests</h2>
+        <div class="card full-width" style="margin-top: 15px;">
+          <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Citizens who requested a new recycling center in their area.</p>
+          <div id="requestList"></div>
+        </div>
       </div>
 
-      <!-- ALL BOOKINGS CARD (FULL WIDTH) -->
-      <div class="card full-width">
-        <h3>📦 All Pickup Requests</h3>
-        <div id="bookingList"></div>
+      <!-- ANALYTICS PANEL -->
+      <div id="panel-analytics" class="admin-panel" style="display: none;">
+        <h2>📈 Platform Analytics</h2>
+        <div class="admin-grid">
+          <div class="card">
+            <h3>Top Categories</h3>
+            <canvas id="categoryChart"></canvas>
+          </div>
+          <div class="card">
+            <h3>Booking Status</h3>
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
       </div>
-    </div>
+
+    </main>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

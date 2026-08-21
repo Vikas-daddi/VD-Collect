@@ -21,11 +21,15 @@ const phoneInput = document.getElementById('centerPhone');
 const timingInput = document.getElementById('centerTiming');
 const itemsInput = document.getElementById('centerItems');
 
+let collectorsList = [];
+
 // ========== INIT ==========
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   checkAdminAuth();
+  await loadCollectors();
   loadCenters();
   loadBookings();
+  loadCenterRequests();
   
   form.addEventListener('submit', handleFormSubmit);
   cancelEditBtn.addEventListener('click', resetForm);
@@ -232,7 +236,51 @@ window.editCenter = async function(id) {
   }
 };
 
-// ========== DELETE CENTER ==========
+// ========== COLLECTOR MANAGEMENT ==========
+async function loadCollectors() {
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/auth/collectors`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      collectorsList = await res.json();
+    }
+  } catch (err) {
+    console.error('Failed to load collectors', err);
+  }
+}
+
+window.assignCollector = async function(bookingId) {
+  const collectorId = document.getElementById(`collector-${bookingId}`).value;
+  if (!collectorId) {
+    alert('Please select a collector first.');
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_URL}/bookings/${bookingId}/assign`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ collectorId })
+    });
+    if (res.ok) {
+      alert('✅ Collector assigned successfully!');
+      loadBookings();
+    } else {
+      const err = await res.json();
+      alert('❌ Failed to assign: ' + err.message);
+    }
+  } catch (error) {
+    alert('❌ Error assigning collector.');
+  }
+};
+
+// ========== LOAD CENTER REQUESTS ==========
 window.deleteCenter = async function(id) {
   if (!confirm('Are you sure you want to delete this center?')) return;
   
@@ -285,7 +333,7 @@ async function loadBookings() {
     container.innerHTML = bookings.map(b => {
       let itemsText = 'N/A';
       if (b.items && Array.isArray(b.items) && b.items.length > 0) {
-        itemsText = b.items.map(item => item.name || 'Unknown Item').join(', ');
+        itemsText = b.items.map(item => `${item.name || 'Unknown Item'} (x${item.quantity || 1})`).join(', ');
       }
 
       const userName = b.user?.name || 'Unknown User';
@@ -293,6 +341,8 @@ async function loadBookings() {
       const userPhone = b.user?.phone || 'No Phone';
       const centerName = b.center?.name || 'Unknown Center';
       const bookingDate = b.pickupDate ? new Date(b.pickupDate).toLocaleDateString() : 'No Date';
+      
+      const imageHtml = b.image ? `<div style="margin-top: 10px;"><p style="margin:0 0 5px 0;"><strong>📸 Uploaded Image:</strong></p><img src="${b.image}" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #ddd;" alt="Waste Image"/></div>` : '';
 
       return `
         <div class="booking-item">
@@ -306,15 +356,33 @@ async function loadBookings() {
             <p>📦 Items: <strong>${itemsText}</strong></p>
             <p>📅 Pickup Date: ${bookingDate}</p>
             <p>🏠 Address: ${b.pickupAddress || 'N/A'}</p>
+            ${imageHtml}
           </div>
           <div class="booking-actions">
             <button onclick="updateStatus('${b._id}', 'confirmed')" class="btn-confirm">✅ Confirm</button>
             <button onclick="updateStatus('${b._id}', 'completed')" class="btn-complete">✔️ Complete</button>
             <button onclick="updateStatus('${b._id}', 'cancelled')" class="btn-cancel">❌ Cancel</button>
           </div>
+          ${b.status !== 'completed' && b.status !== 'cancelled' ? `
+          <div style="margin-top:10px; padding: 10px; background: #f8f9fa; border-radius: 6px; border: 1px solid #e0e0e0;">
+            <label style="font-size: 13px; font-weight: bold; color: #424242;">Assign Collector:</label>
+            <div style="display: flex; gap: 10px; margin-top: 5px;">
+              <select id="collector-${b._id}" style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
+                <option value="">-- Select Collector --</option>
+                ${collectorsList.map(c => `<option value="${c._id}" ${b.collector === c._id ? 'selected' : ''}>${c.name}</option>`).join('')}
+              </select>
+              <button onclick="assignCollector('${b._id}')" class="btn-confirm" style="padding: 6px 12px; font-size: 12px; background: #607d8b;">Assign</button>
+            </div>
+            ${b.collector ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #2e7d32;">✅ Assigned</p>` : ''}
+          </div>
+          ` : (b.collector ? `<div style="margin-top:10px;"><p style="font-size:13px; color:#2e7d32;"><strong>Assigned Collector:</strong> Active</p></div>` : '')}
         </div>
       `;
     }).join('');
+
+    // Call analytics renderer
+    renderAnalytics(bookings);
+
   } catch (error) {
     console.error('Failed to load bookings:', error);
     document.getElementById('bookingList').innerHTML = '<p style="color:red;">❌ Failed to load bookings.</p>';
@@ -348,9 +416,183 @@ window.updateStatus = async function(bookingId, status) {
   }
 };
 
+// ========== LOAD CENTER REQUESTS ==========
+async function loadCenterRequests() {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/requests`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    
+    if (!response.ok) throw new Error('Failed to fetch requests');
+
+    const requests = await response.json();
+    const container = document.getElementById('requestList');
+
+    if (requests.length === 0) {
+      container.innerHTML = '<p style="color:#999;">No center requests yet.</p>';
+      return;
+    }
+
+    container.innerHTML = requests.map(r => {
+      const userName = r.user?.name || 'Unknown User';
+      const userEmail = r.user?.email || 'No Email';
+      const requestDate = new Date(r.createdAt).toLocaleDateString();
+      let actionsHTML = '';
+
+      if (r.status === 'pending') {
+        actionsHTML = `
+          <button onclick="approveRequest('${r._id}', '${r.location.replace(/'/g, "\\'")}')" class="btn-confirm" style="font-size: 12px; padding: 4px 8px;">✅ Approve & Add</button>
+          <button onclick="updateRequestStatus('${r._id}', 'dismissed')" class="btn-cancel" style="font-size: 12px; padding: 4px 8px;">❌ Dismiss</button>
+        `;
+      } else {
+        actionsHTML = `<span class="status-${r.status}" style="font-size: 12px;">${r.status.toUpperCase()}</span>`;
+      }
+
+      return `
+        <div class="booking-item" style="padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <strong>📍 ${r.location}</strong>
+            <p style="font-size: 12px; color: #666; margin: 4px 0;">Requested by: ${userName} (${userEmail}) on ${requestDate}</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            ${actionsHTML}
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Failed to load center requests:', error);
+    document.getElementById('requestList').innerHTML = '<p style="color:red;">❌ Failed to load requests.</p>';
+  }
+}
+
+// ========== UPDATE REQUEST STATUS ==========
+window.updateRequestStatus = async function(requestId, status) {
+  if (!confirm(`Are you sure you want to mark this request as "${status}"?`)) return;
+
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/requests/${requestId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (response.ok) {
+      loadCenterRequests();
+    } else {
+      const error = await response.json();
+      alert('❌ Failed to update: ' + error.message);
+    }
+  } catch (error) {
+    alert('❌ Error updating request.');
+  }
+};
+
+// ========== APPROVE & POPULATE FORM ==========
+window.approveRequest = async function(requestId, location) {
+  // Switch to the Manage Centers tab
+  switchTab('panel-centers');
+
+  // Populate the form with the requested location
+  cityInput.value = location;
+  addressInput.value = location;
+  nameInput.value = 'VD Collect - ' + location;
+  
+  // Scroll up to form
+  document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+  alert('Form populated with requested location! Please review the details and click "Auto-Detect & Add Center" to finalize.');
+  
+  // Mark request as approved in background
+  await updateRequestStatus(requestId, 'approved');
+};
+
+// ========== TAB SWITCHING ==========
+window.switchTab = function(panelId) {
+  // Hide all panels
+  document.querySelectorAll('.admin-panel').forEach(panel => {
+    panel.style.display = 'none';
+  });
+
+  // Remove active class from all tabs
+  document.querySelectorAll('.tab-link').forEach(link => {
+    link.classList.remove('active-tab');
+  });
+
+  // Show selected panel
+  const activePanel = document.getElementById(panelId);
+  if (activePanel) activePanel.style.display = 'block';
+
+  // Highlight active tab link
+  const activeLink = document.getElementById('tab-' + panelId);
+  if (activeLink) activeLink.classList.add('active-tab');
+};
+
+// ========== ANALYTICS ==========
+let categoryChart = null;
+let statusChart = null;
+
+function renderAnalytics(bookings) {
+  // Aggregate Categories
+  const categoryCounts = {};
+  const statusCounts = {};
+
+  bookings.forEach(b => {
+    // Count status
+    statusCounts[b.status] = (statusCounts[b.status] || 0) + 1;
+
+    // Count categories
+    (b.items || []).forEach(item => {
+      const name = item.name || 'Other';
+      categoryCounts[name] = (categoryCounts[name] || 0) + (item.quantity || 1);
+    });
+  });
+
+  // Render Category Chart
+  const ctxCat = document.getElementById('categoryChart');
+  if (ctxCat) {
+    if (categoryChart) categoryChart.destroy();
+    categoryChart = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(categoryCounts).length ? Object.keys(categoryCounts) : ['No Data'],
+        datasets: [{
+          data: Object.values(categoryCounts).length ? Object.values(categoryCounts) : [1],
+          backgroundColor: ['#ff9800', '#4caf50', '#2196f3', '#e91e63', '#9c27b0']
+        }]
+      }
+    });
+  }
+
+  // Render Status Chart
+  const ctxStatus = document.getElementById('statusChart');
+  if (ctxStatus) {
+    if (statusChart) statusChart.destroy();
+    statusChart = new Chart(ctxStatus, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(statusCounts).length ? Object.keys(statusCounts) : ['No Data'],
+        datasets: [{
+          label: 'Bookings',
+          data: Object.values(statusCounts).length ? Object.values(statusCounts) : [0],
+          backgroundColor: '#7ec8e3'
+        }]
+      }
+    });
+  }
+}
+
+
 // Expose functions globally
 window.loadCenters = loadCenters;
 window.loadBookings = loadBookings;
 window.editCenter = editCenter;
 window.deleteCenter = deleteCenter;
 window.updateStatus = updateStatus;
+window.loadCenterRequests = loadCenterRequests;
+window.updateRequestStatus = updateRequestStatus;
+window.approveRequest = approveRequest;

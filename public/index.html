@@ -16,9 +16,11 @@
     <div class="logo">⚡ VD Collect</div>
     <div class="nav-links">
       <a href="/">Home</a>
-      <a href="/map">Find Centers</a>
-      <a href="/book">Book Pickup</a>
-      <a href="/history" id="historyLink" style="display:none;">My Bookings</a>
+      <a href="/map" id="findCentersLink">Find Centers</a>
+      <a href="/book" id="bookPickupLink">Book Pickup</a>
+      <a href="/dashboard" id="historyLink" style="display:none;">My Dashboard</a>
+      <a href="/admin" id="adminLink" style="display:none; color: #ff9800; font-weight: bold;">Admin Panel</a>
+      <a href="/collector" id="collectorLink" style="display:none; color: #4caf50; font-weight: bold;">Collector Portal</a>
       <a href="/login" id="loginBtn" class="btn-login">Login</a>
 <a href="/register" id="registerBtn" class="btn-register">Register</a>
       <a href="#" id="logoutBtn" class="btn-logout" style="display:none;">Logout</a>
@@ -34,9 +36,16 @@
         <p class="hero-sub">
           Find the nearest disposal center, book a pickup, and track your recycling impact — all in one place.
         </p>
-        <div class="hero-actions">
-          <a href="/map" class="btn-primary btn-hero">📍 Find Nearest Center</a>
-          <a href="/map" class="btn-secondary">Explore Map</a>
+        <div class="hero-actions" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; display: inline-flex; gap: 10px; align-items: center; border: 1px solid rgba(255,255,255,0.1);">
+          <select id="heroWasteType" style="padding: 12px; border-radius: 4px; border: 1px solid #ccc; font-size: 14px; min-width: 200px; color: #333;">
+            <option value="">What are you recycling?</option>
+            <option value="Batteries">Batteries & Accessories</option>
+            <option value="Laptops">Laptops & Phones (IT)</option>
+            <option value="TVs">TVs & Monitors</option>
+            <option value="Refrigerators">Large Appliances</option>
+            <option value="Printers">Office Equipment</option>
+          </select>
+          <button id="heroSmartFindBtn" class="btn-primary btn-hero" style="margin: 0; padding: 12px 24px;">🔍 Find Nearest Drop-off</button>
         </div>
         <div class="hero-stats">
           <div><strong>3+</strong> Centers</div>
@@ -110,6 +119,10 @@
           <button id="searchBtn" class="btn-primary">🔍 Search</button>
           <button id="nearestBtn" class="btn-nearest">📍 Find Nearest</button>
         </div>
+        <div style="margin-top: 15px;">
+          <span style="font-size: 14px; color: #666;">No centers in your area?</span>
+          <button id="openRequestModalBtn" style="font-size: 13px; padding: 8px 16px; margin-left: 10px; background-color: #ff9800; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.3s;">Request a Center</button>
+        </div>
       </div>
       <div id="map"></div>
       <div id="centerInfo"></div>
@@ -123,7 +136,11 @@
       <form id="bookingForm">
         <input type="text" id="pickupAddress" placeholder="Your pickup address" required />
         <input type="date" id="pickupDate" required />
-        <input type="text" id="itemsList" placeholder="e.g., Laptop x1, Battery x2" required />
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+          <input type="text" id="wasteTypeDisplay" placeholder="Waste Category" required style="flex: 2; margin-bottom: 0;" />
+          <input type="number" id="wasteQuantity" min="1" value="1" placeholder="Qty" required style="flex: 1; margin-bottom: 0;" />
+        </div>
+        <input type="file" id="wasteImage" accept="image/*" style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%;" />
         <select id="centerSelect" required>
           <option value="">Select a collection center</option>
         </select>
@@ -132,13 +149,49 @@
     </div>
   </section>
 
-  <!-- ============ HISTORY PAGE (/history) ============ -->
-  <section id="historyPage" class="page-section" style="display:none;">
+  <!-- ============ DASHBOARD PAGE (/dashboard) ============ -->
+  <section id="dashboardPage" class="page-section" style="display:none;">
     <div class="container" style="padding: 40px 20px;">
-      <h2>📜 My Booking History</h2>
-      <div id="bookingHistoryList"></div>
+      <h2>🌍 My Impact Dashboard</h2>
+      
+      <!-- Gamification Stats -->
+      <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+        <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; flex: 1; text-align: center; border: 1px solid #c8e6c9;">
+          <h3 style="margin: 0; color: #2e7d32; font-size: 32px;" id="dashboardPoints">0</h3>
+          <p style="margin: 5px 0 0 0; color: #388e3c; font-weight: bold;">Green Points</p>
+        </div>
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; flex: 1; text-align: center; border: 1px solid #ffe0b2;">
+          <h3 style="margin: 0; color: #e65100; font-size: 32px;" id="dashboardBadges">0</h3>
+          <p style="margin: 5px 0 0 0; color: #f57c00; font-weight: bold;">Badges Earned</p>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 30px; flex-wrap: wrap;">
+        <!-- Left: History List -->
+        <div style="flex: 2; min-width: 300px;">
+          <h3>📜 My Booking History</h3>
+          <div id="bookingHistoryList"></div>
+        </div>
+
+        <!-- Right: Chart -->
+        <div style="flex: 1; min-width: 300px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+          <h3 style="margin-top: 0;">Recycling Impact</h3>
+          <canvas id="impactChart"></canvas>
+        </div>
+      </div>
     </div>
   </section>
+
+  <!-- ============ REQUEST CENTER MODAL ============ -->
+  <div id="requestModal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 400px; text-align: center;">
+      <h3 style="margin-top: 0;">Request a New Center</h3>
+      <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Let us know where you need a center!</p>
+      <input type="text" id="requestLocation" placeholder="Enter City or Neighborhood" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 15px; box-sizing: border-box;" />
+      <button id="submitRequestBtn" class="btn-primary" style="width: 100%; margin-bottom: 10px;">Submit Request</button>
+      <button id="closeRequestModalBtn" class="btn-secondary" style="width: 100%; background: #eee; color: #333;">Cancel</button>
+    </div>
+  </div>
 
   <!-- ============ FOOTER ============ -->
   <footer>
@@ -160,6 +213,7 @@
 
   <!-- ============ SCRIPTS ============ -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="js/app.js"></script>
   <script src="js/map.js"></script>
 </body>

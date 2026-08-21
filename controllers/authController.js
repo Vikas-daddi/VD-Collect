@@ -8,18 +8,18 @@ const generateToken = (id, role) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role, phone, address } = req.body;
+    const { name, email, password, phone, address } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email' });
     }
-    const user = new User({ name, email, password, role, phone, address });
+    const user = new User({ name, email, password, role: 'citizen', phone, address });
     await user.save();
     const token = generateToken(user._id, user.role);
     res.status(201).json({
       message: 'User registered successfully',
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, points: user.points, badges: user.badges },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -41,7 +41,7 @@ exports.login = async (req, res) => {
     res.json({
       message: 'Login successful',
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
+      user: { id: user._id, name: user.name, email: user.email, role: user.role, points: user.points, badges: user.badges },
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -52,6 +52,15 @@ exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+exports.getCollectors = async (req, res) => {
+  try {
+    const collectors = await User.find({ role: 'collector' }).select('-password');
+    res.json(collectors);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

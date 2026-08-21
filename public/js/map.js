@@ -23,23 +23,30 @@ document.addEventListener('DOMContentLoaded', () => {
   setupNearestButton();
 });
 
+// ============= INITIALIZE MAP =============
 function initMap() {
-  if (window._mapInitialized) {
-    console.log('ℹ️ Map already initialized, skipping.');
-    return;
-  }
+  const mapElement = document.getElementById('map');
+  if (!mapElement) return;
 
-  console.log('🗺️ Initializing map...');
-  const defaultLat = 28.6139;
-  const defaultLng = 77.2090;
+  map = L.map('map').setView([28.6139, 77.2090], 5); // Default: Center of India
 
-  map = L.map('map').setView([defaultLat, defaultLng], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
   }).addTo(map);
 
-  markersLayer = L.layerGroup().addTo(map);
-  window._mapInitialized = true;
+  markersLayer = L.featureGroup().addTo(map);
+
+  setupSearch();
+  setupNearestButton();
+  setupBookingForm();
+
+  // If there's a pre-selected waste type, we should automatically trigger find nearest
+  if (sessionStorage.getItem('preferredWasteType')) {
+    // Wait slightly for centers to load before finding nearest
+    setTimeout(() => {
+      findNearestCenters();
+    }, 500);
+  }
 }
 
 // ============= FETCH CENTERS (UPDATES GLOBAL allCenters) =============
@@ -204,6 +211,16 @@ function setupBookingForm() {
   const form = document.getElementById('bookingForm');
   if (!form) return;
 
+  const wasteTypeDisplay = document.getElementById('wasteTypeDisplay');
+  if (wasteTypeDisplay) {
+    const preferred = sessionStorage.getItem('preferredWasteType') || '';
+    wasteTypeDisplay.value = preferred;
+    if (!preferred) {
+      wasteTypeDisplay.removeAttribute('readonly');
+      wasteTypeDisplay.style.cursor = 'text';
+    }
+  }
+
   form.removeEventListener('submit', handleBookingSubmit);
   form.addEventListener('submit', handleBookingSubmit);
 }
@@ -242,11 +259,27 @@ async function handleBookingSubmit(e) {
 
   showLoading();
 
+  const wasteCategory = document.getElementById('wasteTypeDisplay').value;
+  const wasteQty = document.getElementById('wasteQuantity').value;
+  const imageInput = document.getElementById('wasteImage');
+  let base64Image = null;
+
+  if (imageInput.files && imageInput.files[0]) {
+    const file = imageInput.files[0];
+    base64Image = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   const bookingData = {
     centerId: centerId,
     pickupAddress: document.getElementById('pickupAddress').value,
     pickupDate: pickupDate,
-    items: document.getElementById('itemsList').value.split(',').map(i => ({ name: i.trim(), quantity: 1 })),
+    items: [{ name: wasteCategory, quantity: parseInt(wasteQty, 10) }],
+    image: base64Image
   };
 
   try {
@@ -266,7 +299,7 @@ async function handleBookingSubmit(e) {
       
       sessionStorage.setItem('success_centerName', centerName);
       sessionStorage.setItem('success_pickupDate', pickupDate);
-      sessionStorage.setItem('success_items', document.getElementById('itemsList').value);
+      sessionStorage.setItem('success_items', `${wasteCategory} (x${wasteQty})`);
       sessionStorage.setItem('success_address', document.getElementById('pickupAddress').value);
 
       // Redirect to success page
@@ -303,29 +336,42 @@ function handleSearchKey(e) {
 
 async function searchCenters() {
   const query = document.getElementById('searchInput').value.toLowerCase().trim();
+  const wasteType = sessionStorage.getItem('preferredWasteType');
+  let baseCenters = allCenters;
+  
+  if (wasteType) {
+    baseCenters = allCenters.filter(c => c.acceptedItems.includes(wasteType));
+  }
+
   if (!query) {
-    displayCenters(allCenters);
-    populateCenterDropdown(allCenters);
-    document.getElementById('centerInfo').innerHTML = '';
+    displayCenters(baseCenters);
+    populateCenterDropdown(baseCenters);
+    if (wasteType) {
+      document.getElementById('centerInfo').innerHTML = `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${wasteType} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>`;
+    } else {
+      document.getElementById('centerInfo').innerHTML = '';
+    }
     return;
   }
 
-  const filtered = allCenters.filter(c =>
+  const filtered = baseCenters.filter(c =>
     c.city.toLowerCase().includes(query) ||
     (c.pincode && c.pincode.includes(query)) ||
     c.acceptedItems.some(item => item.toLowerCase().includes(query)) ||
     c.name.toLowerCase().includes(query)
   );
 
+  let filterBanner = wasteType ? `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${wasteType} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>` : '';
+
   if (filtered.length === 0) {
-    document.getElementById('centerInfo').innerHTML = `<p>❌ No centers found for "${query}".</p>`;
+    document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>❌ No centers found for "${query}".</p>`;
     if (markersLayer) markersLayer.clearLayers();
     return;
   }
 
   displayCenters(filtered);
   populateCenterDropdown(filtered);
-  document.getElementById('centerInfo').innerHTML = `<p>✅ Found ${filtered.length} center(s) matching "${query}"</p>`;
+  document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>✅ Found ${filtered.length} center(s) matching "${query}"</p>`;
 }
 
 // ============= 🌟 FIND NEAREST CENTERS (WITH CLICKABLE LIST) =============
@@ -372,7 +418,23 @@ function findNearestCenters() {
         .addTo(map)
         .bindPopup('📍 <strong>You are here</strong>');
 
-      const centersWithDistance = allCenters.map(center => {
+      const wasteType = sessionStorage.getItem('preferredWasteType');
+      let centersToSearch = allCenters;
+
+      let filterBanner = '';
+      if (wasteType) {
+        centersToSearch = allCenters.filter(c => c.acceptedItems.includes(wasteType));
+        filterBanner = `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${wasteType} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>`;
+      }
+
+      if (centersToSearch.length === 0) {
+        document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>❌ No centers found accepting ${wasteType} near you.</p>`;
+        btn.textContent = originalText;
+        btn.disabled = false;
+        return;
+      }
+
+      const centersWithDistance = centersToSearch.map(center => {
         const dist = getDistance(userLat, userLng, center.latitude, center.longitude);
         return { ...center, distance: dist };
       });
@@ -383,7 +445,7 @@ function findNearestCenters() {
       displayCenters(nearest);
       populateCenterDropdown(nearest);
 
-      let infoHtml = `<h3>📍 Nearest Centers (${nearest.length} closest)</h3>`;
+      let infoHtml = `${filterBanner}<h3>📍 Nearest Centers (${nearest.length} closest)</h3>`;
       infoHtml += `<p style="font-size:14px; color:#555; margin-bottom:10px;">👆 Click any center name below to book instantly!</p>`;
 
       nearest.forEach((c, index) => {
@@ -460,3 +522,69 @@ window.populateCenterDropdown = populateCenterDropdown;
 window.displayCenters = displayCenters;
 window.getDistance = getDistance;
 window.allCenters = allCenters;
+
+// ============= REQUEST CENTER LOGIC =============
+document.addEventListener('DOMContentLoaded', () => {
+  const openModalBtn = document.getElementById('openRequestModalBtn');
+  const closeModalBtn = document.getElementById('closeRequestModalBtn');
+  const modal = document.getElementById('requestModal');
+  const submitBtn = document.getElementById('submitRequestBtn');
+  const locationInput = document.getElementById('requestLocation');
+
+  if (openModalBtn) {
+    openModalBtn.addEventListener('click', () => {
+      if (!localStorage.getItem('token')) {
+        alert('Please login or register to request a center.');
+        window.location.href = '/login';
+        return;
+      }
+      modal.style.display = 'flex';
+    });
+  }
+
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+      locationInput.value = '';
+    });
+  }
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', async () => {
+      const location = locationInput.value.trim();
+      if (!location) {
+        alert('Please enter a city or neighborhood.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting...';
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ location })
+        });
+
+        if (response.ok) {
+          alert('Request submitted successfully! We will look into adding a center in your area.');
+          modal.style.display = 'none';
+          locationInput.value = '';
+        } else {
+          const error = await response.json();
+          alert('Failed to submit request: ' + error.message);
+        }
+      } catch (err) {
+        alert('Error submitting request.');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Request';
+      }
+    });
+  }
+});

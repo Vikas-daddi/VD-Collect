@@ -1,7 +1,7 @@
 const Booking = require('../models/Booking');
 const Center = require('../models/Center');
 const User = require('../models/User');
-const { sendBookingConfirmation } = require('../config/email');
+const { sendEmail } = require('../utils/emailService');
 const mongoose = require('mongoose'); // <-- Added this
 
 // Helper function to check if an ID is a valid MongoDB ObjectId
@@ -12,7 +12,7 @@ const isValidObjectId = (id) => {
 // @desc    Create a booking (Citizen)
 exports.createBooking = async (req, res) => {
   try {
-    const { centerId, items, pickupDate, pickupAddress, notes } = req.body;
+    const { centerId, items, pickupDate, pickupAddress, notes, image } = req.body;
 
     // 🔥 FIX: Check if centerId is a valid ObjectId BEFORE querying
     let center = null;
@@ -37,10 +37,25 @@ exports.createBooking = async (req, res) => {
       pickupDate,
       pickupAddress,
       notes,
+      image,
       status: 'pending',
     });
 
     await booking.save();
+
+    // Send "Pickup Requested" email
+    const userObj = await User.findById(req.user.id);
+    if (userObj) {
+      await sendEmail(
+        userObj.email,
+        '🌱 Pickup Requested - VD Collect',
+        `<h2>Hi ${userObj.name},</h2>
+         <p>Your pickup request has been received and is currently <b>pending</b>.</p>
+         <p>We will notify you once a collector is assigned!</p>
+         <p>Thank you for recycling with VD Collect.</p>`
+      );
+    }
+
     res.status(201).json({ message: 'Pickup booked successfully', booking });
 
   } catch (error) {
@@ -94,13 +109,82 @@ exports.updateBookingStatus = async (req, res) => {
       const user = await User.findById(booking.user);
       const center = await Center.findById(booking.center);
       if (user && center) {
-        await sendBookingConfirmation(user.email, user.name, center.name, booking.pickupDate);
+        await sendEmail(
+          user.email,
+          '✅ Pickup Confirmed - VD Collect',
+          `<h2>Good news, ${user.name}!</h2>
+           <p>Your pickup for <b>${center.name}</b> has been confirmed.</p>
+           <p>A collector has been assigned and will arrive on ${new Date(booking.pickupDate).toLocaleDateString()}.</p>`
+        );
+      }
+    }
+
+    // Award points when status changes to 'completed'
+    if (status === 'completed') {
+      const user = await User.findById(booking.user);
+      if (user) {
+        let earnedPoints = 0;
+        booking.items.forEach(item => {
+          earnedPoints += (item.quantity || 1) * 50; // 50 points per item
+        });
+        user.points = (user.points || 0) + earnedPoints;
+        
+        let newBadge = null;
+        // Example badge logic: if they hit 500 points, give a badge
+        if (user.points >= 500 && !user.badges.includes('Eco Warrior')) {
+          user.badges.push('Eco Warrior');
+          newBadge = 'Eco Warrior';
+        }
+        
+        await user.save();
+
+        // Send "Completed & Points Awarded" email
+        await sendEmail(
+          user.email,
+          '🎉 Pickup Completed! You earned points!',
+          `<h2>Thank you for recycling, ${user.name}!</h2>
+           <p>Your pickup was successful. You just earned <b>${earnedPoints} Eco Points</b>!</p>
+           ${newBadge ? `<p>🏆 You also unlocked a new badge: <b>${newBadge}</b>!</p>` : ''}
+           <p>Check out your new stats on your Impact Dashboard.</p>`
+        );
       }
     }
 
     res.json({ message: 'Booking status updated', booking });
   } catch (error) {
     console.error('❌ Update Status Error:', error.message);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Assign a collector to a booking (Admin only)
+exports.assignCollector = async (req, res) => {
+  try {
+    const { collectorId } = req.body;
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+    
+    booking.collector = collectorId;
+    await booking.save();
+    
+    res.json({ message: 'Collector assigned successfully', booking });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get assignments for the logged-in collector
+exports.getCollectorAssignments = async (req, res) => {
+  try {
+    const bookings = await Booking.find({ collector: req.user.id })
+      .populate('user', 'name email phone')
+      .populate('center', 'name address')
+      .sort({ pickupDate: 1 });
+      
+    res.json(bookings);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
