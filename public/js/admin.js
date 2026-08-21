@@ -2,7 +2,7 @@
 // VD COLLECT - ADMIN PANEL (WITH EDIT FUNCTIONALITY)
 // ============================================
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = '/api';
 
 // DOM Elements
 const form = document.getElementById('centerForm');
