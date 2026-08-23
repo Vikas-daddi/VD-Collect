@@ -90,7 +90,13 @@ app.get('/api/seed-centers', async (req, res) => {
       city: c.city,
       phone: c.phone,
       isActive: true,
-      acceptedItems: ['Laptops', 'Mobile Phones', 'Batteries', 'Chargers', 'TVs']
+      acceptedItems: [
+        'Batteries & Accessories', 
+        'Laptops & Phones (IT)', 
+        'TVs & Monitors', 
+        'Large Appliances', 
+        'Office Equipment'
+      ]
     }));
 
     await Center.deleteMany({});
