@@ -28,6 +28,21 @@ app.get('/api/ping', (req, res) => {
   res.json({ message: 'Pong! The server is running perfectly.' });
 });
 
+// Temporary route to make admin
+app.get('/api/make-admin', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const user = await User.findOneAndUpdate({ email: 'admin@gmail.com' }, { role: 'admin' }, { new: true });
+    if (user) {
+      res.json({ message: 'Successfully made admin@gmail.com an admin!', user });
+    } else {
+      res.status(404).json({ message: 'User not found. Register them first!' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ========== APP PAGES ==========
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
