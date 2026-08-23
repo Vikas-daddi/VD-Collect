@@ -9,13 +9,21 @@ const centerRoutes = require('./routes/centerRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const centerRequestRoutes = require('./routes/centerRequestRoutes');
 
-connectDB();
-
 const app = express();
 app.use(cors({ origin: process.env.CLIENT_URL || '*' })); // Set to your frontend domain in production
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Ensure DB is connected before handling API requests (Crucial for Vercel Serverless)
+app.use('/api', async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Database connection failed' });
+  }
+});
 
 // ========== API ROUTES ==========
 app.use('/api/auth', authRoutes);
