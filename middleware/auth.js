@@ -23,4 +23,12 @@ const isAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { auth, isAdmin };
+const isAdminOrCollector = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'collector')) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Admin or Collector access required' });
+  }
+};
+
+module.exports = { auth, isAdmin, isAdminOrCollector };
