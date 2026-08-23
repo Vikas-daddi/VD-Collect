@@ -93,6 +93,27 @@ app.get('/api/seed-centers', async (req, res) => {
   }
 });
 
+// Temporary route to seed collectors
+app.get('/api/seed-collectors', async (req, res) => {
+  try {
+    const User = require('./models/User');
+    const existing = await User.findOne({ email: 'collector1@gmail.com' });
+    if (existing) {
+      return res.json({ message: 'Collectors already seeded! Use collector1@gmail.com and password: collector123' });
+    }
+    
+    const collector1 = new User({ name: 'Ramesh Collector', email: 'collector1@gmail.com', password: 'collector123', role: 'collector', phone: '1111111111', address: 'Mumbai' });
+    const collector2 = new User({ name: 'Suresh Collector', email: 'collector2@gmail.com', password: 'collector123', role: 'collector', phone: '2222222222', address: 'Delhi' });
+    
+    await collector1.save();
+    await collector2.save();
+    
+    res.json({ message: 'Successfully seeded 2 collectors! Login with collector1@gmail.com / collector123' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ========== APP PAGES ==========
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
