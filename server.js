@@ -23,6 +23,11 @@ app.use('/api/centers', centerRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/requests', centerRequestRoutes);
 
+// Simple ping route to test if the server is running without DB
+app.get('/api/ping', (req, res) => {
+  res.json({ message: 'Pong! The server is running perfectly.' });
+});
+
 // ========== APP PAGES ==========
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
