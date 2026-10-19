@@ -1,84 +1,94 @@
-# ⚡ VD Collect - E-Waste Collection & Recycling Locator
+# VD Collect
 
-**Live Demo:** [https://vd-collect.vercel.app](https://vd-collect.vercel.app)
+An e-waste collection and recycling locator built with Express, MongoDB, and vanilla JavaScript. Citizens can find collection centers and request pickups; administrators manage centers and dispatch collectors.
 
-**VD Collect** is a full-stack web application that helps citizens find nearby e-waste recycling centers, book pickups, and track their recycling history. It includes a powerful Admin Dashboard for managing centers and requests, as well as a dedicated Collector Portal for field workers to manage and complete their assigned pickups.
+**[Open the live app](https://vd-collect.vercel.app/)** · **[GitHub repository](https://github.com/Vikas-daddi/VD-Collect)**
 
-## 🚀 Features
+## Features
 
-### For Citizens:
-- 🗺️ **Interactive Map**: Find nearby drop-off locations with live Geolocation integration.
-- 🔍 **Smart Search**: Filter centers by exact waste category, city, or pincode.
-- 📦 **Book Pickups**: Schedule home pickups for e-waste directly with centers.
-- 🏆 **Gamification & Impact Dashboard**: Earn "Eco Points" and "Eco Warrior" badges for successful pickups. Track your recycling impact with real-time charts (Chart.js).
+- **Citizens:** register and log in, search centers by name, city, pincode or accepted items, find nearby centers, book pickups with an optional image, and view pickup history and recycling points.
+- **Collectors:** view assigned pickups, open directions in Google Maps, and mark their own assignments as collected.
+- **Administrators:** add, edit and delete centers, confirm or cancel pickups, assign collectors, review center requests, and view booking analytics.
+- **Notifications:** optional SMTP email for pickup requests, confirmations and completion.
 
-### For Collectors:
-- 🚚 **Dedicated Collector Portal**: A streamlined view for field workers.
-- 🗺️ **Live Directions**: Click to open Google Maps for immediate routing to the citizen's house.
-- ✅ **One-Click Completion**: Mark jobs as collected while on the go.
+Completed pickups award 50 points per item. The Eco Warrior badge unlocks at 500 points. Completed and cancelled bookings cannot be reopened through the status API.
 
-### For Admins:
-- 📊 **Analytics Dashboard**: Visual charts for category breakdowns and booking status metrics.
-- 🛠️ **Manage Centers**: Full CRUD capabilities (Add, Edit, Delete) for recycling centers with automatic address geocoding (Nominatim).
-- 📋 **Booking & Dispatch**: View all citizen requests, approve/cancel them, and seamlessly assign them to Collectors.
-- 📬 **Manage Requests**: Users can request new centers in their neighborhood; admins can one-click approve and auto-fill the center creation form.
+## Stack
 
-## 🛠️ Tech Stack
+HTML, CSS and browser JavaScript; Leaflet with CARTO/OpenStreetMap map tiles; Chart.js; Node.js and Express; MongoDB with Mongoose; bcrypt password hashing; JWT authentication; Nodemailer.
 
-**Frontend:**
-- HTML5, CSS3, JavaScript (Vanilla)
-- Leaflet.js & OpenStreetMap (Mapping)
-- Chart.js (Analytics)
+## Run locally
 
-**Backend:**
-- Node.js & Express.js
-- MongoDB & Mongoose ODM (Database)
-- JSON Web Tokens (JWT) for secure role-based auth (Citizen, Admin, Collector)
-- Bcrypt.js (Password Hashing)
-- Nodemailer (Email Confirmations - Optional)
+Node.js 24 was used for verification. You also need npm and a reachable MongoDB database.
 
-## ⚙️ Test Accounts
+```sh
+git clone https://github.com/Vikas-daddi/VD-Collect.git
+cd VD-Collect
+npm ci
+```
 
-If testing on the live demo, you can use these accounts to explore the different roles:
+Copy `.env.example` to `.env` and replace the example values:
 
-**Admin Account:**
-- **Email:** `admin@gmail.com`
-- **Password:** `admin`
+```env
+PORT=5000
+MONGO_URI=mongodb://127.0.0.1:27017/vdcollect
+JWT_SECRET=replace-with-a-long-random-secret
+```
 
-**Collector Account:**
-- **Email:** `collector1@gmail.com`
-- **Password:** `collector123`
+Never commit `.env` or real credentials. For MongoDB Atlas, use your own connection URI and configure network access for the deployment.
 
-## 🚀 Installation & Local Setup
+```sh
+npm start
+```
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Vikas-daddi/VD-Collect.git
-   cd VD-Collect
-   ```
+Open [http://localhost:5000](http://localhost:5000). Use `npm run dev` for automatic server restarts during development.
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+Public registration creates citizen accounts. Admin and collector roles must be provisioned through a trusted database administration process; the public form does not grant privileged roles. The project has no public seed endpoints. Do not use the legacy seed scripts against a database containing data you need to retain.
 
-3. **Configure Environment Variables:**
-   Create a `.env` file in the root directory and add:
-   ```env
-   PORT=5000
-   MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/vdcollect
-   JWT_SECRET=your_super_secret_jwt_key
-   ```
+## Optional email
 
-4. **Run the server:**
-   ```bash
-   npm run dev
-   ```
-   The application will be running at `http://localhost:5000`.
+Set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` and optionally `FROM_EMAIL` in the environment. Port 465 enables TLS directly; other ports use the transport defaults. If SMTP is absent, the application skips notifications without creating external test email accounts.
 
-## 🌍 Vercel Deployment
+`CLIENT_URL` can restrict CORS to your frontend origin; it defaults to `*`. Email delivery is separate from pickup persistence.
 
-This project is fully optimized for **Vercel Serverless Functions**.
-- `server.js` exports the Express `app` directly for Vercel.
-- Database connections are awaited on every API route via middleware to prevent "Mongoose buffering timed out" cold-start errors.
-- A `vercel.json` file is included to handle client-side routing rewrites and API routing.
+## Pages and API
+
+- `/`: home; `/map`: center locator; `/book`: pickup form; `/dashboard`: citizen history and points.
+- `/login` and `/register`: authentication; `/success`: booking confirmation.
+- `/admin`: administration; `/collector`: collector assignments. APIs enforce role permissions even though HTML pages are publicly served.
+- `GET /api/ping`: server health independent of MongoDB.
+- `/api/auth`: registration, login, current account and the admin-only collector directory.
+- `/api/centers`: public active-center list; admin-only create, update and delete operations.
+- `/api/bookings`: authenticated bookings, collector assignments, admin dispatch and permitted status changes.
+- `/api/requests`: citizen center requests and admin review.
+
+Protected requests use `Authorization: Bearer <token>`. Invalid input returns 400, missing/invalid authentication 401, forbidden actions 403, missing resources 404, conflicting status changes 409, and database outages 503. Unknown API paths return JSON rather than the frontend HTML.
+
+## Tests
+
+```sh
+npm test
+```
+
+The 13 regression tests cover page serving, API errors, role permissions, invalid booking input, completion concurrency, collector assignment, zero coordinates, database connection retries and HTML escaping. Database models and email are mocked: tests do not modify the configured database or send messages.
+
+Local verification on October 19, 2026: all 13 tests passed; the home, login and registration pages loaded in the browser; the live local database returned 200 centers. Real pickup writes and SMTP delivery still require integration testing.
+
+## Deploy on Vercel
+
+Import this GitHub repository into Vercel and use the included `vercel.json`. Set `MONGO_URI` and `JWT_SECRET` in the Vercel project environment; add SMTP settings only if needed. MongoDB must allow connections from the deployment environment.
+
+`server.js` exports the Express application for serverless use and starts a listener only when run directly. Database connections are reused and concurrent connection attempts share a promise. When Git integration is enabled, pushes to the configured production branch trigger deployment.
+
+The canonical public URL is **https://vd-collect.vercel.app/**. After deployment, verify `/api/ping`, `/api/centers`, login and role-specific flows. A successful Git push alone does not confirm deployment success.
+
+## Project documentation
+
+- [Product requirements](prd.md): users, features and acceptance criteria.
+- [Architecture](architecture.md): runtime, directory structure and data flow.
+- [Coding rules](rules.md): conventions and verification requirements.
+- [Design direction](design.md): visual style, interaction and accessibility.
+- [Tasks](tasks.md): completed work and outstanding improvements.
+- [Project memory](memory.md): current context, decisions and verification limits.
+
+These six context files follow the file list in [Avani Hiranandani's reel](https://www.instagram.com/reel/DdeCyNIqBWz/); their contents describe this repository.

@@ -21,12 +21,12 @@ exports.createBooking = async (req, res) => {
     }
 
     // If not found in DB, check if it's a dummy center (fallback)
-    if (!center) {
+    if (!center || !center.isActive) {
       // Allow booking even if center is dummy? 
       // Better: Send a clear message, OR store dummy booking without DB relation.
       // Since we want to test, let's just return a specific message.
       return res.status(400).json({ 
-        message: 'Invalid center selected. Please select a center added by the Admin (not dummy).' 
+        message: 'Please select an active collection center.'
       });
     }
 
@@ -101,8 +101,26 @@ exports.updateBookingStatus = async (req, res) => {
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' });
     }
-    booking.status = status;
-    await booking.save();
+    if (req.user.role === 'collector' &&
+        (String(booking.collector) !== req.user.id || status !== 'completed')) {
+      return res.status(403).json({ message: 'Collectors can only complete their assigned pickups' });
+    }
+    if (booking.status === status) {
+      return res.json({ message: 'Booking status unchanged', booking });
+    }
+    if (['completed', 'cancelled'].includes(booking.status)) {
+      return res.status(409).json({ message: 'A completed or cancelled booking cannot be changed' });
+    }
+    // Compare and set so simultaneous completion requests cannot award points twice.
+    const updated = await Booking.findOneAndUpdate(
+      { _id: booking._id, status: booking.status, collector: booking.collector ?? null },
+      { $set: { status } },
+      { new: true, runValidators: true }
+    );
+    if (!updated) {
+      return res.status(409).json({ message: 'Booking changed. Refresh and try again.' });
+    }
+    booking.status = updated.status;
 
     // Send email when status changes to 'confirmed'
     if (status === 'confirmed') {
@@ -121,22 +139,18 @@ exports.updateBookingStatus = async (req, res) => {
 
     // Award points when status changes to 'completed'
     if (status === 'completed') {
-      const user = await User.findById(booking.user);
+      const earnedPoints = booking.items.reduce((sum, item) => sum + (item.quantity || 1) * 50, 0);
+      const user = await User.findByIdAndUpdate(booking.user,
+        { $inc: { points: earnedPoints } }, { new: true });
       if (user) {
-        let earnedPoints = 0;
-        booking.items.forEach(item => {
-          earnedPoints += (item.quantity || 1) * 50; // 50 points per item
-        });
-        user.points = (user.points || 0) + earnedPoints;
-        
         let newBadge = null;
-        // Example badge logic: if they hit 500 points, give a badge
-        if (user.points >= 500 && !user.badges.includes('Eco Warrior')) {
-          user.badges.push('Eco Warrior');
-          newBadge = 'Eco Warrior';
+        if (user.points >= 500) {
+          const badgeAward = await User.updateOne(
+            { _id: user._id, badges: { $ne: 'Eco Warrior' } },
+            { $addToSet: { badges: 'Eco Warrior' } }
+          );
+          if (badgeAward.modifiedCount) newBadge = 'Eco Warrior';
         }
-        
-        await user.save();
 
         // Send "Completed & Points Awarded" email
         await sendEmail(
@@ -161,13 +175,17 @@ exports.updateBookingStatus = async (req, res) => {
 exports.assignCollector = async (req, res) => {
   try {
     const { collectorId } = req.body;
-    const booking = await Booking.findById(req.params.id);
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
+    const collector = await User.findOne({ _id: collectorId, role: 'collector' });
+    if (!collector) {
+      return res.status(400).json({ message: 'Please select a valid collector' });
     }
-    
-    booking.collector = collectorId;
-    await booking.save();
+    const booking = await Booking.findOneAndUpdate(
+      { _id: req.params.id, status: { $in: ['pending', 'confirmed'] } },
+      { $set: { collector: collectorId } }, { new: true, runValidators: true }
+    );
+    if (!booking) {
+      return res.status(404).json({ message: 'Active booking not found' });
+    }
     
     res.json({ message: 'Collector assigned successfully', booking });
   } catch (error) {

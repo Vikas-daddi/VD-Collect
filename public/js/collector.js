@@ -40,6 +40,7 @@ async function loadRoutes() {
 
     container.innerHTML = bookings.map(b => {
       const isCompleted = b.status === 'completed';
+      const isClosed = isCompleted || b.status === 'cancelled';
       
       let itemsText = 'N/A';
       if (b.items && Array.isArray(b.items) && b.items.length > 0) {
@@ -49,23 +50,23 @@ async function loadRoutes() {
       return `
         <div class="route-card ${isCompleted ? 'completed' : ''}">
           <div class="route-header">
-            <h3>👤 ${b.user?.name || 'Unknown Citizen'}</h3>
+            <h3>👤 ${escapeHTML(b.user?.name || 'Unknown Citizen')}</h3>
             <span class="status ${isCompleted ? 'completed' : ''}">${b.status}</span>
           </div>
           <p class="detail">
-            <strong>📍 Address:</strong> ${b.pickupAddress} 
+            <strong>📍 Address:</strong> ${escapeHTML(b.pickupAddress)}
             <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.pickupAddress)}" target="_blank" style="margin-left:10px; background:#e3f2fd; color:#1976d2; padding:3px 8px; border-radius:12px; text-decoration:none; font-size:12px; font-weight:bold;">
               🗺️ Get Directions
             </a>
           </p>
-          <p class="detail"><strong>📞 Phone:</strong> ${b.user?.phone || 'No phone'}</p>
-          <p class="detail"><strong>🏢 Drop-off:</strong> ${b.center?.name || 'Unknown Center'}</p>
-          <p class="detail"><strong>📦 Items:</strong> ${itemsText}</p>
+          <p class="detail"><strong>📞 Phone:</strong> ${escapeHTML(b.user?.phone || 'No phone')}</p>
+          <p class="detail"><strong>🏢 Drop-off:</strong> ${escapeHTML(b.center?.name || 'Unknown Center')}</p>
+          <p class="detail"><strong>📦 Items:</strong> ${escapeHTML(itemsText)}</p>
           
           <button 
             class="btn-complete" 
             onclick="markCollected('${b._id}')" 
-            ${isCompleted ? 'disabled' : ''}>
+            ${isClosed ? 'disabled' : ''}>
             ${isCompleted ? '✅ Collected' : '✅ Mark as Collected'}
           </button>
         </div>

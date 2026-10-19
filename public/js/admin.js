@@ -59,6 +59,7 @@ async function getCoordinates(address, city) {
     const response = await fetch(url, {
       headers: { 'User-Agent': 'VD-Collect-Admin/1.0' }
     });
+    if (!response.ok) throw new Error('Geocoding unavailable');
     const data = await response.json();
 
     if (data && data.length > 0) {
@@ -67,12 +68,11 @@ async function getCoordinates(address, city) {
         lng: parseFloat(data[0].lon)
       };
     } else {
-      console.warn('⚠️ Address not found, using default (Delhi).');
-      return { lat: 28.6139, lng: 77.2090 };
+      throw new Error('Address not found. Enter coordinates manually.');
     }
   } catch (error) {
     console.error('❌ Geocoding failed:', error);
-    return { lat: 28.6139, lng: 77.2090 };
+    throw error;
   }
 }
 
@@ -181,10 +181,10 @@ async function loadCenters() {
       <div class="center-item">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
           <div>
-            <strong>${c.name}</strong> 
-            <span class="badge">${c.city}</span>
-            <p>${c.address}</p>
-            <small>📞 ${c.phone || 'N/A'} | 🕐 ${c.timing || 'N/A'}</small>
+            <strong>${escapeHTML(c.name)}</strong>
+            <span class="badge">${escapeHTML(c.city)}</span>
+            <p>${escapeHTML(c.address)}</p>
+            <small>📞 ${escapeHTML(c.phone || 'N/A')} | 🕐 ${escapeHTML(c.timing || 'N/A')}</small>
             <br/><small style="color:#aaa;">📍 ${c.latitude}, ${c.longitude}</small>
           </div>
           <div style="display:flex; gap:8px; margin-top:8px;">
@@ -342,20 +342,20 @@ async function loadBookings() {
       const centerName = b.center?.name || 'Unknown Center';
       const bookingDate = b.pickupDate ? new Date(b.pickupDate).toLocaleDateString() : 'No Date';
       
-      const imageHtml = b.image ? `<div style="margin-top: 10px;"><p style="margin:0 0 5px 0;"><strong>📸 Uploaded Image:</strong></p><img src="${b.image}" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #ddd;" alt="Waste Image"/></div>` : '';
+      const imageHtml = b.image ? `<div style="margin-top: 10px;"><p style="margin:0 0 5px 0;"><strong>📸 Uploaded Image:</strong></p><img src="${escapeHTML(safeImageURL(b.image))}" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #ddd;" alt="Waste Image"/></div>` : '';
 
       return `
         <div class="booking-item">
           <div class="booking-header">
-            <strong>👤 ${userName}</strong>
+            <strong>👤 ${escapeHTML(userName)}</strong>
             <span class="status-${b.status}">${b.status.toUpperCase()}</span>
           </div>
           <div class="booking-details">
-            <p>📧 ${userEmail} | 📞 ${userPhone}</p>
-            <p>📍 Center: ${centerName}</p>
-            <p>📦 Items: <strong>${itemsText}</strong></p>
+            <p>📧 ${escapeHTML(userEmail)} | 📞 ${escapeHTML(userPhone)}</p>
+            <p>📍 Center: ${escapeHTML(centerName)}</p>
+            <p>📦 Items: <strong>${escapeHTML(itemsText)}</strong></p>
             <p>📅 Pickup Date: ${bookingDate}</p>
-            <p>🏠 Address: ${b.pickupAddress || 'N/A'}</p>
+            <p>🏠 Address: ${escapeHTML(b.pickupAddress || 'N/A')}</p>
             ${imageHtml}
           </div>
           <div class="booking-actions">
@@ -369,7 +369,7 @@ async function loadBookings() {
             <div style="display: flex; gap: 10px; margin-top: 5px;">
               <select id="collector-${b._id}" style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid #ccc;">
                 <option value="">-- Select Collector --</option>
-                ${collectorsList.map(c => `<option value="${c._id}" ${b.collector === c._id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                ${collectorsList.map(c => `<option value="${c._id}" ${b.collector === c._id ? 'selected' : ''}>${escapeHTML(c.name)}</option>`).join('')}
               </select>
               <button onclick="assignCollector('${b._id}')" class="btn-confirm" style="padding: 6px 12px; font-size: 12px; background: #607d8b;">Assign</button>
             </div>
@@ -442,7 +442,7 @@ async function loadCenterRequests() {
 
       if (r.status === 'pending') {
         actionsHTML = `
-          <button onclick="approveRequest('${r._id}', '${r.location.replace(/'/g, "\\'")}')" class="btn-confirm" style="font-size: 12px; padding: 4px 8px;">✅ Approve & Add</button>
+          <button onclick="approveRequest('${r._id}', ${escapeHTML(JSON.stringify(r.location))})" class="btn-confirm" style="font-size: 12px; padding: 4px 8px;">✅ Approve & Add</button>
           <button onclick="updateRequestStatus('${r._id}', 'dismissed')" class="btn-cancel" style="font-size: 12px; padding: 4px 8px;">❌ Dismiss</button>
         `;
       } else {
@@ -452,8 +452,8 @@ async function loadCenterRequests() {
       return `
         <div class="booking-item" style="padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <strong>📍 ${r.location}</strong>
-            <p style="font-size: 12px; color: #666; margin: 4px 0;">Requested by: ${userName} (${userEmail}) on ${requestDate}</p>
+            <strong>📍 ${escapeHTML(r.location)}</strong>
+            <p style="font-size: 12px; color: #666; margin: 4px 0;">Requested by: ${escapeHTML(userName)} (${escapeHTML(userEmail)}) on ${requestDate}</p>
           </div>
           <div style="display: flex; gap: 8px;">
             ${actionsHTML}

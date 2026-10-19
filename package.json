@@ -4,6 +4,7 @@
   "description": "E-Waste Collection & Recycling Locator",
   "main": "server.js",
   "scripts": {
+    "test": "node --test",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },

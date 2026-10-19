@@ -53,7 +53,10 @@ function initMap() {
 async function fetchCentersData() {
   try {
     const response = await fetch(`${API_URL}/centers`);
-    let centers = await response.json();
+    if (!response.ok) throw new Error('Could not load collection centers. Please try again.');
+    const centers = await response.json();
+    if (!Array.isArray(centers)) throw new Error('Invalid centers response');
+    window.centersLoadError = null;
 
     if (centers && centers.length > 0) {
       console.log('✅ Fetched centers from Database:', centers.length);
@@ -67,7 +70,8 @@ async function fetchCentersData() {
     window.allCenters = [];
     return [];
   } catch (error) {
-    console.error('❌ Error fetching centers:', error);
+    window.centersLoadError = error.message;
+    console.error('Error fetching centers:', error);
     allCenters = [];
     window.allCenters = [];
     return [];
@@ -96,7 +100,7 @@ async function loadCenters() {
   }
 
   if (allCenters.length === 0) {
-    document.getElementById('centerInfo').innerHTML = `
+    document.getElementById('centerInfo').innerHTML = window.centersLoadError ? `<p role="alert">${escapeHTML(window.centersLoadError)}</p>` : `
       <p>📢 No collection centers added yet.
       <br/>Please <a href="/admin" style="color:#f9a825;">login as Admin</a> to add centers.</p>
     `;
@@ -122,10 +126,10 @@ function displayCenters(centers) {
     const marker = L.marker([center.latitude, center.longitude])
       .addTo(markersLayer)
       .bindPopup(`
-        <strong>${center.name}</strong><br>
-        ${center.address}<br>
-        📞 ${center.phone || 'N/A'}<br>
-        🕐 ${center.timing || 'N/A'}<br>
+        <strong>${escapeHTML(center.name)}</strong><br>
+        ${escapeHTML(center.address)}<br>
+        📞 ${escapeHTML(center.phone || 'N/A')}<br>
+        🕐 ${escapeHTML(center.timing || 'N/A')}<br>
         <button onclick="selectCenter('${center._id}')" style="margin-top:5px;padding:5px 15px;background:#f9a825;border:none;border-radius:5px;cursor:pointer;font-weight:bold;">Book Pickup</button>
       `);
     marker.on('click', () => showCenterDetails(center));
@@ -155,11 +159,11 @@ function showCenterDetails(center) {
   }
 
   infoDiv.innerHTML = `
-    <h3>${center.name}</h3>
-    <p>📍 ${center.address}</p>
-    <p>📞 ${center.phone || 'N/A'}</p>
-    <p>🕐 ${center.timing || '9 AM - 6 PM'}</p>
-    <p><strong>Accepted Items:</strong> ${center.acceptedItems.join(', ')}</p>
+    <h3>${escapeHTML(center.name)}</h3>
+    <p>📍 ${escapeHTML(center.address)}</p>
+    <p>📞 ${escapeHTML(center.phone || 'N/A')}</p>
+    <p>🕐 ${escapeHTML(center.timing || '9 AM - 6 PM')}</p>
+    <p><strong>Accepted Items:</strong> ${escapeHTML(center.acceptedItems.join(', '))}</p>
     ${distanceText}
     <button class="btn-primary" onclick="selectCenter('${center._id}')">Book Pickup Here</button>
   `;
@@ -264,25 +268,25 @@ async function handleBookingSubmit(e) {
   const imageInput = document.getElementById('wasteImage');
   let base64Image = null;
 
-  if (imageInput.files && imageInput.files[0]) {
-    const file = imageInput.files[0];
-    base64Image = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  const bookingData = {
-    centerId: centerId,
-    pickupAddress: document.getElementById('pickupAddress').value,
-    pickupDate: pickupDate,
-    items: [{ name: wasteCategory, quantity: parseInt(wasteQty, 10) }],
-    image: base64Image
-  };
-
   try {
+    if (imageInput.files && imageInput.files[0]) {
+      const file = imageInput.files[0];
+      base64Image = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    const bookingData = {
+      centerId: centerId,
+      pickupAddress: document.getElementById('pickupAddress').value,
+      pickupDate: pickupDate,
+      items: [{ name: wasteCategory, quantity: parseInt(wasteQty, 10) }],
+      image: base64Image
+    };
+
     const response = await fetch(`${API_URL}/bookings`, {
       method: 'POST',
       headers: {
@@ -347,7 +351,7 @@ async function searchCenters() {
     displayCenters(baseCenters);
     populateCenterDropdown(baseCenters);
     if (wasteType) {
-      document.getElementById('centerInfo').innerHTML = `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${wasteType} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>`;
+      document.getElementById('centerInfo').innerHTML = `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${escapeHTML(wasteType)} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>`;
     } else {
       document.getElementById('centerInfo').innerHTML = '';
     }
@@ -361,17 +365,17 @@ async function searchCenters() {
     c.name.toLowerCase().includes(query)
   );
 
-  let filterBanner = wasteType ? `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${wasteType} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>` : '';
+  let filterBanner = wasteType ? `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${escapeHTML(wasteType)} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>` : '';
 
   if (filtered.length === 0) {
-    document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>❌ No centers found for "${query}".</p>`;
+    document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>❌ No centers found for "${escapeHTML(query)}".</p>`;
     if (markersLayer) markersLayer.clearLayers();
     return;
   }
 
   displayCenters(filtered);
   populateCenterDropdown(filtered);
-  document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>✅ Found ${filtered.length} center(s) matching "${query}"</p>`;
+  document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>✅ Found ${filtered.length} center(s) matching "${escapeHTML(query)}"</p>`;
 }
 
 // ============= 🌟 FIND NEAREST CENTERS (WITH CLICKABLE LIST) =============
@@ -424,11 +428,11 @@ function findNearestCenters() {
       let filterBanner = '';
       if (wasteType) {
         centersToSearch = allCenters.filter(c => c.acceptedItems.includes(wasteType));
-        filterBanner = `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${wasteType} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>`;
+        filterBanner = `<div style="background-color: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: center;"><strong>Filtering for:</strong> ${escapeHTML(wasteType)} <button onclick="sessionStorage.removeItem('preferredWasteType'); window.location.reload();" style="margin-left: 10px; background: none; border: none; color: red; text-decoration: underline; cursor: pointer;">Clear Filter</button></div>`;
       }
 
       if (centersToSearch.length === 0) {
-        document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>❌ No centers found accepting ${wasteType} near you.</p>`;
+        document.getElementById('centerInfo').innerHTML = `${filterBanner}<p>❌ No centers found accepting ${escapeHTML(wasteType)} near you.</p>`;
         btn.textContent = originalText;
         btn.disabled = false;
         return;
@@ -456,8 +460,8 @@ function findNearestCenters() {
                onmouseout="this.style.backgroundColor='transparent'">
             <span>
               <strong>${index + 1}.</strong> 
-              <span style="color:#0d2b3e; font-weight:700; text-decoration:underline;">${c.name}</span>
-              <br/><span style="font-size:13px; color:#666;">${c.address}</span>
+              <span style="color:#0d2b3e; font-weight:700; text-decoration:underline;">${escapeHTML(c.name)}</span>
+              <br/><span style="font-size:13px; color:#666;">${escapeHTML(c.address)}</span>
             </span>
             <span style="color:#f9a825; font-weight:bold; font-size:18px; white-space:nowrap; margin-left:15px;">
               ${c.distance.toFixed(2)} km ➜

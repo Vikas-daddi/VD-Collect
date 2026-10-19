@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { register, login, getMe, getCollectors } = require('../controllers/authController');
-const { auth } = require('../middleware/auth');
+const { auth, isAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 const validate = (req, res, next) => {
@@ -14,19 +14,19 @@ const validate = (req, res, next) => {
 };
 
 router.post('/register', [
-  body('name').notEmpty().withMessage('Name is required'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('password').notEmpty().withMessage('Password is required'),
+  body('name').isString().bail().trim().notEmpty().withMessage('Name is required'),
+  body('email').isString().bail().trim().isEmail().withMessage('Valid email is required'),
+  body('password').isString().bail().notEmpty().withMessage('Password is required'),
   validate
 ], register);
 
 router.post('/login', [
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('password').notEmpty().withMessage('Password is required'),
+  body('email').isString().bail().trim().isEmail().withMessage('Valid email is required'),
+  body('password').isString().bail().notEmpty().withMessage('Password is required'),
   validate
 ], login);
 
 router.get('/me', auth, getMe);
-router.get('/collectors', auth, getCollectors);
+router.get('/collectors', auth, isAdmin, getCollectors);
 
 module.exports = router;

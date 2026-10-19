@@ -18,23 +18,7 @@ async function initTransporter() {
       },
     });
   } else {
-    // Fallback to Ethereal Email for local testing
-    console.log('No SMTP credentials found in .env, falling back to Ethereal Email for testing...');
-    try {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: 'smtp.ethereal.email',
-        port: 587,
-        secure: false, 
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
-      console.log('📧 Ethereal Email test account created!');
-    } catch (err) {
-      console.error('Failed to create Ethereal account:', err);
-    }
+    console.log('SMTP not configured; email notifications are disabled.');
   }
 }
 

@@ -50,8 +50,8 @@ exports.updateCenter = async (req, res) => {
     center.address = address || center.address;
     center.city = city || center.city;
     center.pincode = pincode || center.pincode;
-    center.latitude = latitude || center.latitude;
-    center.longitude = longitude || center.longitude;
+    center.latitude = latitude ?? center.latitude;
+    center.longitude = longitude ?? center.longitude;
     center.phone = phone || center.phone;
     center.email = email || center.email;
     center.acceptedItems = acceptedItems || center.acceptedItems;

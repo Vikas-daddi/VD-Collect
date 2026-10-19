@@ -199,12 +199,12 @@ async function loadDashboard() {
       return `
         <div class="booking-card">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong>${centerName}</strong>
+            <strong>${escapeHTML(centerName)}</strong>
             <span class="status-${b.status}">${b.status.toUpperCase()}</span>
           </div>
-          <p>📍 ${b.pickupAddress || 'No address provided'}</p>
+          <p>📍 ${escapeHTML(b.pickupAddress || 'No address provided')}</p>
           <p>📅 ${b.pickupDate ? new Date(b.pickupDate).toLocaleDateString() : 'No date'}</p>
-          <p>📦 Items: ${itemsText}</p>
+          <p>📦 Items: ${escapeHTML(itemsText)}</p>
           ${!b.center ? '<p style="color:#e53935; font-size:12px;">⚠️ This center was deleted from the system.</p>' : ''}
         </div>
       `;
