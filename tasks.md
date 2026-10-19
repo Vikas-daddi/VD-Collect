@@ -26,7 +26,7 @@ Updated: October 19, 2026.
 
 - [x] Commit and push the tested fixes and documentation to GitHub (initial release: `ef96521`).
 - [x] Confirm Vercel serves the new revision after the production deployment finishes (`ef96521`: Ready; registration and shared UI asset verified).
-- [ ] Restore production database availability: `/api/centers` returned 503 after deployment; local database reads succeeded.
+- [ ] Restore production database availability: Vercel logs `ENOTFOUND` during connection, indicating an unresolved database hostname. `/api/centers` returns 503. Local reads succeeded; copying the local URI to Vercel awaits user authorization.
 - [ ] Run database-backed pickup, dispatch, completion and badge checks with disposable data.
 - [ ] Verify SMTP delivery when a transport is configured.
 

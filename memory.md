@@ -32,7 +32,7 @@ On October 19, 2026, the 13 mocked regression tests passed. All 24 JavaScript fi
 
 Real pickup writes and email delivery were not exercised. Status, points and badge writes are not transactional, so crash recovery remains unresolved. JWT role claims last for the token lifetime. Browser token storage currently uses localStorage. Footer legal/contact links remain placeholders.
 
-Release `ef96521` was pushed to GitHub and Vercel reported a successful production deployment. The public registration form and `/js/ui.js` confirmed the updated code was served; `/api/ping` returned 200. Production `/api/centers` returned 503, so production database availability is still under investigation. Vercel has MONGO_URI and JWT_SECRET configured for Production and Preview. Do not infer database health from deployment readiness.
+Release `ef96521` was pushed to GitHub and Vercel reported a successful production deployment. The public registration form and `/js/ui.js` confirmed the updated code was served; `/api/ping` returned 200. Production `/api/centers` returned 503. Diagnostic release `1f501cf` reached Ready; its runtime logs classify the failure as `Error ENOTFOUND`, indicating DNS resolution failure for the configured database hostname. Replacing the production URI with the working local value awaits user authorization to transmit those credentials. Vercel has MONGO_URI and JWT_SECRET configured for Production and Preview. Do not infer database health from deployment readiness.
 
 ## Source of context-file structure
 

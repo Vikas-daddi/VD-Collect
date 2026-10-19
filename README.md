@@ -82,6 +82,10 @@ Import this GitHub repository into Vercel and use the included `vercel.json`. Se
 
 The canonical public URL is **https://vd-collect.vercel.app/**. After deployment, verify `/api/ping`, `/api/centers`, login and role-specific flows. A successful Git push alone does not confirm deployment success.
 
+## Troubleshooting
+
+If `/api/ping` succeeds but `/api/centers` returns 503, inspect the Vercel runtime logs and database configuration. `ENOTFOUND` means the configured database hostname cannot be resolved: verify the current cluster hostname and `MONGO_URI`, then redeploy after correcting the environment. Deployment status Ready confirms that the build is served; it does not confirm database connectivity. Do not paste database credentials into issues, logs or this README.
+
 ## Project documentation
 
 - [Product requirements](prd.md): users, features and acceptance criteria.
