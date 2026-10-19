@@ -32,7 +32,7 @@ On October 19, 2026, the 13 mocked regression tests passed. All 24 JavaScript fi
 
 Real pickup writes and email delivery were not exercised. Status, points and badge writes are not transactional, so crash recovery remains unresolved. JWT role claims last for the token lifetime. Browser token storage currently uses localStorage. Footer legal/contact links remain placeholders.
 
-At documentation creation, the local changes had not yet been confirmed deployed. Use `tasks.md` and the actual remote revision to determine release status; do not infer deployment from local success.
+Release `ef96521` was pushed to GitHub and Vercel reported a successful production deployment. The public registration form and `/js/ui.js` confirmed the updated code was served; `/api/ping` returned 200. Production `/api/centers` returned 503, so production database availability is still under investigation. Vercel has MONGO_URI and JWT_SECRET configured for Production and Preview. Do not infer database health from deployment readiness.
 
 ## Source of context-file structure
 

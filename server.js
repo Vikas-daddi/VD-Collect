@@ -34,6 +34,8 @@ app.use('/api', async (req, res, next) => {
     await connectDB();
     next();
   } catch (err) {
+    // Log error classification for deployment diagnosis without exposing the URI.
+    console.error('Database connection failed:', err.name, err.code || 'NO_CODE');
     res.status(503).json({ message: 'Database unavailable. Please try again shortly.' });
   }
 });
