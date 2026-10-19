@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://vd-collect.vercel.app/">
+    <img src="public/images/logo.svg" alt="VD Collect — E-waste collection and recycling" width="520" />
+  </a>
+</p>
+
 # VD Collect
 
 An e-waste collection and recycling locator built with Express, MongoDB, and vanilla JavaScript. Citizens can find collection centers and request pickups; administrators manage centers and dispatch collectors.
