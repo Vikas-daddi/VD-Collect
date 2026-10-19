@@ -26,7 +26,8 @@ Updated: October 19, 2026.
 
 - [x] Commit and push the tested fixes and documentation to GitHub (initial release: `ef96521`).
 - [x] Confirm Vercel serves the new revision after the production deployment finishes (`ef96521`: Ready; registration and shared UI asset verified).
-- [ ] Restore production database availability: Vercel logs `ENOTFOUND` during connection, indicating an unresolved database hostname. `/api/centers` returns 503. Local reads succeeded; copying the local URI to Vercel awaits user authorization.
+- [x] Restore production database availability: created a dedicated Atlas application user with readWrite on `vdcollect`, stored an encoded cloud URI in Vercel Production, and verified `/api/ping` and `/api/centers` return 200. Preview retains its previous URI.
+- [x] Copy 200 validated local center records to Atlas `vdcollect.centers` without copying accounts/bookings or deleting cloud data; verify production returns 200 records.
 - [ ] Run database-backed pickup, dispatch, completion and badge checks with disposable data.
 - [ ] Verify SMTP delivery when a transport is configured.
 

@@ -72,7 +72,7 @@ npm test
 
 The 13 regression tests cover page serving, API errors, role permissions, invalid booking input, completion concurrency, collector assignment, zero coordinates, database connection retries and HTML escaping. Database models and email are mocked: tests do not modify the configured database or send messages.
 
-Local verification on October 19, 2026: all 13 tests passed; the home, login and registration pages loaded in the browser; the live local database returned 200 centers. Real pickup writes and SMTP delivery still require integration testing.
+Verification on October 19, 2026: all 13 tests passed; the home, login and registration pages loaded in the browser. Production `/api/ping` and `/api/centers` returned HTTP 200 after connecting Vercel to Atlas; the centers endpoint returned 200 records. Real pickup writes and SMTP delivery still require integration testing.
 
 ## Deploy on Vercel
 
